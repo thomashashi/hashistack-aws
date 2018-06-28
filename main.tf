@@ -245,3 +245,17 @@ resource "aws_autoscaling_group" "hashistack" {
     create_before_destroy = true
   }
 }
+
+# This module assumes that Consul is listening on https ports,
+# see the aws_autoscaling_group.hashistack target_group_arns
+# above. But the module it uses to create security group rules
+# doesn't create this rule, so fix it here.
+
+resource "aws_security_group_rule" "consul_https_api_tcp" {
+  security_group_id = "${module.consul_server_sg.consul_server_sg_id}"
+  type              = "ingress"
+  protocol          = "tcp"
+  from_port         = "8080"
+  to_port           = "8080"
+  cidr_blocks = ["${var.public ? "0.0.0.0/0" : var.vpc_cidr}"] # If there's a public IP, open Consul ports for public access - DO NOT DO THIS IN PROD
+}
